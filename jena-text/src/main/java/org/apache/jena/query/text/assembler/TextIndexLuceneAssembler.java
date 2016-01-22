@@ -28,6 +28,8 @@ import static org.apache.jena.query.text.assembler.TextVocab.pStoreValues;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 import org.apache.jena.assembler.Assembler;
@@ -41,6 +43,7 @@ import org.apache.jena.query.text.TextIndex;
 import org.apache.jena.query.text.TextIndexConfig;
 import org.apache.jena.query.text.TextIndexException;
 import org.apache.jena.query.text.TextIndexLucene;
+import org.apache.jena.query.text.WeakMap;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
@@ -150,26 +153,14 @@ public class TextIndexLuceneAssembler extends AssemblerBase {
             return null ;
         }
     }
-protected static class RAMDirectoryMap {
-    	
-    	private static WeakHashMap<RDFNode, WeakReference<RAMDirectory>> map = new WeakHashMap<RDFNode, WeakReference<RAMDirectory>>();
+protected static class RAMDirectoryMap extends WeakMap<RDFNode, RDFNode, RAMDirectory>{
 
-    	protected synchronized RAMDirectory get(RDFNode node) {
-    		WeakReference<RAMDirectory> ref = map.get(node);
-    		if (ref == null)
-    			return null;
-    		RAMDirectory result = ref.get();
-    		if (result == null)
-    			map.put(node, null);
-    		return result;
-    	}
-    	
-    	protected synchronized void put(RDFNode node, RAMDirectory directory) {
-    		map.put(node, new WeakReference<RAMDirectory>(directory));
-    	}
-    	
-    	protected synchronized void remove(RDFNode node) {
-    		map.put(node, null);
-    	}
+        private static Map<RDFNode, WeakReference<RAMDirectory>> map = new WeakHashMap<>();
+        protected  Map<RDFNode, WeakReference<RAMDirectory>> map() { return map; }
+    
+        @Override
+        protected RDFNode key(RDFNode key) {
+            return key;
+        }
     }
 }

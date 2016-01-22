@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -214,49 +215,31 @@ public class TextDatasetFactory
         return create(base, index, true) ; 
     }
  
-    protected static class LuceneIndexMap {
+    protected static class LuceneIndexMap extends WeakMap<Directory,Object, TextIndex> {
     	
-    	private static HashMap<Object, WeakReference<TextIndex>> map = new HashMap<Object, WeakReference<TextIndex>>();
+        private static Map<Object, WeakReference<TextIndex>> map = new HashMap<>();
+        protected Map<Object, WeakReference<TextIndex>> map() { return map; }
 
-    	protected synchronized TextIndex get(Directory directory) {
-    		Object key = key(directory);
-    		WeakReference<TextIndex> ref = map.get(key);
-    		if (ref == null)
-    			return null;
-    		TextIndex result = ref.get();
-    		if (result == null)
-    			map.put(key, null);
-    		return result;
-    	}
+        	protected Object key(Directory directory) {
+        		// uglyness alert
+        		if (directory instanceof FSDirectory) {
+        			return getFilePath( ( (FSDirectory) directory).getDirectory() );
+        		} else if (directory instanceof CompoundFileDirectory) {
+        			return getFilePath( ( (FSDirectory) directory).getDirectory() );
+        		} else if (directory instanceof FileSwitchDirectory) {
+        			return key( ( (FileSwitchDirectory) directory).getPrimaryDir() );
+        		} else {
+        			return directory;
+        		}
+        	}
     	
-    	protected synchronized void put(Directory directory, TextIndex index) {
-    		map.put(key(directory), new WeakReference<TextIndex>(index));
-    	}
-    	
-    	protected synchronized void remove(Directory directory) {
-    		map.put(key(directory), null);
-    	}
-    	
-    	private Object key(Directory directory) {
-    		// uglyness alert
-    		if (directory instanceof FSDirectory) {
-    			return getFilePath( ( (FSDirectory) directory).getDirectory() );
-    		} else if (directory instanceof CompoundFileDirectory) {
-    			return getFilePath( ( (FSDirectory) directory).getDirectory() );
-    		} else if (directory instanceof FileSwitchDirectory) {
-    			return key( ( (FileSwitchDirectory) directory).getPrimaryDir() );
-    		} else {
-    			return directory;
-    		}
-    	}
-    	
-    	private String getFilePath(File file) {
-    		try {
-				return file.getCanonicalPath();
-			} catch (IOException e) {
-				throw new TextIndexException("problem with path '" + file + "': " + e.getMessage(), e);
-			}
-    	}    	
+        	private String getFilePath(File file) {
+        		try {
+    				return file.getCanonicalPath();
+    			} catch (IOException e) {
+    				throw new TextIndexException("problem with path '" + file + "': " + e.getMessage(), e);
+    			}
+        	}    	
     }
 }
 
